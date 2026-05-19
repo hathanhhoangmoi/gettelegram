@@ -302,6 +302,32 @@ function closeViewer() {
   $("viewerBody").innerHTML = "";
 }
 
+function showInspectShield() {
+  let canvas = $("inspectShield");
+  if (!canvas) {
+    canvas = document.createElement("canvas");
+    canvas.id = "inspectShield";
+    canvas.className = "inspect-shield";
+    canvas.width = window.innerWidth * window.devicePixelRatio;
+    canvas.height = window.innerHeight * window.devicePixelRatio;
+    document.body.appendChild(canvas);
+  }
+  canvas.width = window.innerWidth * window.devicePixelRatio;
+  canvas.height = window.innerHeight * window.devicePixelRatio;
+  const context = canvas.getContext("2d");
+  context.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+  context.fillStyle = "#f8fbff";
+  context.fillRect(0, 0, window.innerWidth, window.innerHeight);
+  context.fillStyle = "#0f2633";
+  context.font = "700 18px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+  context.textAlign = "center";
+  context.fillText("Get Media Telegram by Ryuu", window.innerWidth / 2, window.innerHeight / 2 - 12);
+  context.font = "600 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+  context.fillStyle = "#607086";
+  context.fillText("gettelegram.onrender.com", window.innerWidth / 2, window.innerHeight / 2 + 16);
+  canvas.classList.add("active");
+}
+
 async function refreshStatus() {
   const status = await request("/api/status");
   if (status.authorized) {
@@ -564,6 +590,23 @@ $("viewer").addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeViewer();
+  }
+  const key = event.key.toLowerCase();
+  const blocked =
+    event.key === "F12" ||
+    ((event.ctrlKey || event.metaKey) && event.shiftKey && ["c", "i", "j"].includes(key)) ||
+    ((event.ctrlKey || event.metaKey) && key === "u");
+  if (blocked) {
+    event.preventDefault();
+    event.stopPropagation();
+    showInspectShield();
+  }
+});
+
+window.addEventListener("resize", () => {
+  const canvas = $("inspectShield");
+  if (canvas && canvas.classList.contains("active")) {
+    showInspectShield();
   }
 });
 

@@ -17,6 +17,7 @@ const state = {
 
 const $ = (id) => document.getElementById(id);
 const TEST_ACCESS_KEY = "Key Test";
+const TELEGRAM_CREDENTIALS_KEY = "telegramDownloaderCredentials";
 
 function toast(message) {
   const el = $("toast");
@@ -60,6 +61,21 @@ function updateKeyStatus() {
     return;
   }
   $("keyStatus").textContent = state.keyMode === "full" ? "Key hợp lệ: không giới hạn tải." : "Key đã lưu. Bấm Tải danh sách để kiểm tra.";
+}
+
+function loadTelegramCredentials() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(TELEGRAM_CREDENTIALS_KEY) || "{}");
+    $("apiId").value = saved.apiId || "";
+    $("apiHash").value = saved.apiHash || "";
+    $("phone").value = saved.phone || "";
+  } catch {
+    localStorage.removeItem(TELEGRAM_CREDENTIALS_KEY);
+  }
+}
+
+function saveTelegramCredentials(apiId, apiHash, phone) {
+  localStorage.setItem(TELEGRAM_CREDENTIALS_KEY, JSON.stringify({ apiId, apiHash, phone }));
 }
 
 function requireAccessKey() {
@@ -189,7 +205,7 @@ function renderMedia() {
           return `
         <article class="media-item ${checked ? "selected" : ""}" data-message-id="${item.id}">
           <button class="preview" data-open-preview="${item.id}" title="Xem ${escapeHtml(item.kind)}">
-            <img src="${escapeHtml(item.thumbnail_url)}" alt="${escapeHtml(item.name)}" loading="lazy" />
+            <img src="${escapeHtml(item.thumbnail_url)}" alt="${escapeHtml(item.name)}" loading="lazy" width="320" height="320" />
             <span class="kind">${item.kind}</span>
             ${item.kind === "video" ? '<span class="play">▶</span>' : ""}
           </button>
@@ -263,6 +279,7 @@ async function startLogin() {
     toast("Nhập đủ API ID, API Hash và số điện thoại.");
     return;
   }
+  saveTelegramCredentials(apiId, apiHash, phone);
   const result = await request("/api/login/start", {
     method: "POST",
     body: JSON.stringify({ api_id: apiId, api_hash: apiHash, phone }),
@@ -499,4 +516,5 @@ document.addEventListener("keydown", (event) => {
 });
 
 updateKeyStatus();
+loadTelegramCredentials();
 refreshStatus().catch((error) => toast(error.message));

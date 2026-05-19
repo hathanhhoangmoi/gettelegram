@@ -695,28 +695,25 @@ video.viewer-media {
   }
 
   .media-panel {
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    display: block;
     min-height: 0;
-    max-height: 64vh;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .media-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 14px 10px;
     align-content: start;
     align-items: start;
     min-height: 0;
-    overflow-y: auto;
-    padding-right: 2px;
-    overscroll-behavior: contain;
+    overflow: visible;
+    padding-right: 0;
   }
 
   .media-item {
-    display: grid;
-    grid-template-rows: auto auto;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     min-height: 0;
     border-radius: 14px;
@@ -747,8 +744,7 @@ video.viewer-media {
 
   .media-item > div {
     display: grid;
-    grid-template-rows: minmax(32px, auto) 16px 32px;
-    gap: 4px;
+    gap: 5px;
     min-width: 0;
   }
 

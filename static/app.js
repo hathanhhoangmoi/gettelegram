@@ -7,6 +7,9 @@ const state = {
   mediaBatches: [],
   selectedIds: new Set(),
   nextOffsetId: 0,
+  isScanning: false,
+  scanToken: 0,
+  scannedMessages: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -67,9 +70,14 @@ function renderChats() {
 }
 
 function renderMedia() {
+  const scanText = state.isScanning
+    ? `Đang quét... ${state.media.length} media, ${state.scannedMessages} tin nhắn.`
+    : state.media.length
+      ? `Đã quét ${state.media.length} media.`
+      : "Chưa có media.";
   $("selectedCount").textContent = state.selectedIds.size
-    ? `${state.selectedIds.size} media đã chọn.`
-    : "Chưa chọn media.";
+    ? `${state.selectedIds.size} media đã chọn. ${scanText}`
+    : scanText;
   $("mediaList").innerHTML = state.mediaBatches
     .map((batch, batchIndex) => {
       const divider =
@@ -198,18 +206,22 @@ async function loadChats() {
 
 async function selectChat(chatId) {
   const chat = state.chats.find((item) => item.id === chatId);
+  state.scanToken += 1;
   state.selectedChat = chatId;
   state.selectedTitle = chat ? chat.title : chatId;
   state.media = [];
   state.mediaBatches = [];
   state.selectedIds.clear();
   state.nextOffsetId = 0;
+  state.scannedMessages = 0;
+  state.isScanning = true;
   $("mediaTitle").textContent = state.selectedTitle;
   renderChats();
-  await loadMedia(false);
+  renderMedia();
+  await scanAllMedia(state.scanToken);
 }
 
-async function loadMedia(append = true) {
+async function loadMediaBatch(append = true) {
   if (!state.selectedChat) {
     toast("Chọn nhóm/kênh trước.");
     return;
@@ -223,7 +235,9 @@ async function loadMedia(append = true) {
   if (!append) {
     state.media = [];
     state.mediaBatches = [];
+    state.scannedMessages = 0;
   }
+  state.scannedMessages += Number(data.scanned || 0);
   if (data.media.length) {
     state.media.push(...data.media);
     state.mediaBatches.push(data.media);
@@ -232,11 +246,32 @@ async function loadMedia(append = true) {
     state.nextOffsetId = data.next_offset_id;
   }
   renderMedia();
-  if (!data.media.length && data.scanned) {
-    toast("Đoạn này chưa có media, bấm Tải thêm để quét tiếp.");
-  }
-  if (data.scan_limit_reached) {
-    toast("Đã quét sâu nhưng chưa đủ media, bấm Tải thêm để tiếp tục.");
+  return data;
+}
+
+async function scanAllMedia(token) {
+  try {
+    let append = false;
+    while (token === state.scanToken) {
+      const previousOffset = state.nextOffsetId;
+      const data = await loadMediaBatch(append);
+      append = true;
+      if (!data || !data.scanned || data.next_offset_id === previousOffset) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+    if (token === state.scanToken) {
+      state.isScanning = false;
+      renderMedia();
+      toast(state.media.length ? `Đã quét xong ${state.media.length} media.` : "Không tìm thấy media trong nhóm này.");
+    }
+  } catch (error) {
+    if (token === state.scanToken) {
+      state.isScanning = false;
+      renderMedia();
+      toast(error.message);
+    }
   }
 }
 
@@ -332,7 +367,6 @@ $("refreshStatus").addEventListener("click", () => refreshStatus().catch((error)
 $("startLogin").addEventListener("click", () => startLogin().catch((error) => toast(error.message)));
 $("completeLogin").addEventListener("click", () => completeLogin().catch((error) => toast(error.message)));
 $("loadChats").addEventListener("click", () => loadChats().catch((error) => toast(error.message)));
-$("loadMore").addEventListener("click", () => loadMedia(true).catch((error) => toast(error.message)));
 $("downloadSelected").addEventListener("click", () => downloadSelected().catch((error) => toast(error.message)));
 $("chatSearch").addEventListener("input", renderChats);
 $("closeViewer").addEventListener("click", closeViewer);

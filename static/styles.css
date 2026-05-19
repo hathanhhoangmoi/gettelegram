@@ -618,6 +618,20 @@ video.viewer-media {
   display: none !important;
 }
 
+.inspect-shield {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2147483647;
+  display: none;
+  pointer-events: auto;
+}
+
+.inspect-shield.active {
+  display: block;
+}
+
 @media (max-width: 850px) {
   .app {
     width: min(100vw - 20px, 1280px);

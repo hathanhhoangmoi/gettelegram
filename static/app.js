@@ -16,7 +16,7 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
-const TEST_ACCESS_KEY = "KEYTEST";
+const TEST_ACCESS_KEY = "Key Test";
 const TELEGRAM_CREDENTIALS_KEY = "telegramDownloaderCredentials";
 
 function toast(message) {
@@ -247,7 +247,7 @@ function openViewer(item) {
   const src = `${item.preview_url}&v=${encodeURIComponent(item.id)}`;
   if (item.kind === "video") {
     $("viewerBody").innerHTML = `
-      <video class="viewer-media" src="${escapeHtml(src)}" controls autoplay playsinline></video>
+      <video class="viewer-media" src="${escapeHtml(src)}" controls controlslist="nodownload" autoplay playsinline></video>
     `;
   } else {
     $("viewerBody").innerHTML = `
@@ -493,6 +493,12 @@ document.addEventListener("click", (event) => {
       state.selectedIds.add(id);
     }
     renderMedia();
+  }
+});
+
+document.addEventListener("contextmenu", (event) => {
+  if (event.target.closest(".media-item, .preview, .viewer")) {
+    event.preventDefault();
   }
 });
 

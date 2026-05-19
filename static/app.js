@@ -13,6 +13,7 @@ const state = {
   accessKey: localStorage.getItem("telegramDownloaderAccessKey") || "",
   keyMode: null,
   testDownloadUsed: localStorage.getItem("telegramDownloaderTestDownloadUsed") === "1",
+  viewerBlobUrl: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -235,7 +236,15 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function openViewer(item) {
+function revokeViewerBlob() {
+  if (state.viewerBlobUrl) {
+    URL.revokeObjectURL(state.viewerBlobUrl);
+    state.viewerBlobUrl = null;
+  }
+}
+
+async function openViewer(item) {
+  revokeViewerBlob();
   const viewer = $("viewer");
   $("viewerTitle").textContent = item.name;
   $("viewerMeta").textContent = `${item.kind.toUpperCase()} · ${formatBytes(item.size) || "unknown size"}`;
@@ -247,8 +256,39 @@ function openViewer(item) {
   const src = `${item.preview_url}&v=${encodeURIComponent(item.id)}`;
   if (item.kind === "video") {
     $("viewerBody").innerHTML = `
-      <video class="viewer-media" src="${escapeHtml(src)}" controls controlslist="nodownload" autoplay playsinline></video>
+      <div class="video-shell">
+        <video class="viewer-media" id="viewerVideo" autoplay playsinline></video>
+        <button class="video-toggle" id="videoToggle" disabled>Loading...</button>
+      </div>
     `;
+    const video = $("viewerVideo");
+    const toggle = $("videoToggle");
+    fetch(src, { headers: state.accessKey ? { "X-Access-Key": state.accessKey } : {} })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Không tải được video preview.");
+        }
+        return response.blob();
+      })
+      .then((blob) => {
+        state.viewerBlobUrl = URL.createObjectURL(blob);
+        video.src = state.viewerBlobUrl;
+        toggle.disabled = false;
+        toggle.textContent = "Pause";
+        return video.play();
+      })
+      .catch((error) => {
+        $("viewerBody").innerHTML = `<div class="viewer-loading">${escapeHtml(error.message)}</div>`;
+      });
+    toggle.addEventListener("click", () => {
+      if (video.paused) {
+        video.play();
+        toggle.textContent = "Pause";
+      } else {
+        video.pause();
+        toggle.textContent = "Play";
+      }
+    });
   } else {
     $("viewerBody").innerHTML = `
       <img class="viewer-media" src="${escapeHtml(src)}" alt="${escapeHtml(item.name)}" />
@@ -257,6 +297,7 @@ function openViewer(item) {
 }
 
 function closeViewer() {
+  revokeViewerBlob();
   $("viewer").classList.add("hidden");
   $("viewer").setAttribute("aria-hidden", "true");
   $("viewerBody").innerHTML = "";

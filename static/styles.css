@@ -476,6 +476,28 @@ code {
   border-bottom: 1px solid var(--line);
 }
 
+.viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.viewer-download {
+  width: auto;
+  min-width: 88px;
+  margin-top: 0;
+  background: linear-gradient(135deg, var(--brand), #35b6ff);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(8, 126, 232, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.viewer-download:hover {
+  background: linear-gradient(135deg, var(--brand-dark), #159eea);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(8, 126, 232, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
 .viewer-head strong {
   display: block;
   max-width: min(760px, calc(100vw - 150px));
@@ -693,7 +715,7 @@ video.viewer-media {
   }
 
   .preview {
-    aspect-ratio: 4 / 3;
+    aspect-ratio: 1 / 1;
     border-radius: 10px;
   }
 
@@ -731,6 +753,12 @@ video.viewer-media {
     font-size: 11px;
   }
 
+  .viewer-download {
+    width: auto;
+    min-width: 74px;
+    margin-top: 0;
+  }
+
   .media-text {
     display: -webkit-box;
     overflow: hidden;
@@ -761,10 +789,11 @@ video.viewer-media {
 
   .viewer-head {
     padding: 12px;
+    gap: 8px;
   }
 
   .viewer-head strong {
-    max-width: calc(100vw - 76px);
+    max-width: calc(100vw - 150px);
   }
 
   .viewer-body {

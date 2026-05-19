@@ -92,6 +92,31 @@ label {
   padding: 24px 0;
 }
 
+.info-banner {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(9, 92, 121, 0.18);
+  border-radius: 22px;
+  padding: 16px 18px;
+  background:
+    linear-gradient(135deg, rgba(219, 247, 245, 0.94), rgba(235, 245, 255, 0.9)),
+    radial-gradient(circle at 85% 15%, rgba(20, 184, 166, 0.22), transparent 34%);
+  box-shadow: 0 16px 46px rgba(30, 92, 112, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.info-banner strong {
+  color: #073b4c;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.info-banner span {
+  color: #315d70;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 .media-actions {
   display: flex;
   align-items: center;
@@ -585,7 +610,7 @@ video.viewer-media {
 
   button {
     min-height: 44px;
-    border-radius: 12px;
+    border-radius: 25px;
     padding: 0 14px;
   }
 
@@ -640,6 +665,20 @@ video.viewer-media {
     border-radius: 14px;
     padding: 12px;
     background: rgba(255, 255, 255, 0.72);
+  }
+
+  .info-banner {
+    margin: 0 10px 10px;
+    border-radius: 18px;
+    padding: 14px;
+  }
+
+  .info-banner strong {
+    font-size: 19px;
+  }
+
+  .info-banner span {
+    font-size: 13px;
   }
 
   .workspace {

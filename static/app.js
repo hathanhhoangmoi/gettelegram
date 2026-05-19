@@ -105,6 +105,21 @@ function canDownloadWithCurrentKey(messageCount) {
   return true;
 }
 
+function browserDownload(item) {
+  if (!item || !canDownloadWithCurrentKey(1)) {
+    return;
+  }
+  markTestDownloadUsed();
+  const link = document.createElement("a");
+  link.href = item.download_url;
+  link.download = item.name || "";
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  toast(`Đang tải ${compactName(item.name)}...`);
+}
+
 function formatBytes(size) {
   if (!size) return "";
   const units = ["B", "KB", "MB", "GB"];
@@ -115,6 +130,19 @@ function formatBytes(size) {
     index += 1;
   }
   return `${value.toFixed(index ? 1 : 0)} ${units[index]}`;
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function compactName(name) {
@@ -170,10 +198,8 @@ function renderMedia() {
               <div class="media-name" title="${escapeHtml(item.name)}">${escapeHtml(compactName(item.name))}</div>
               <input type="checkbox" ${checked ? "checked" : ""} aria-label="Select media ${item.id}" />
             </div>
-            <div class="media-date">${escapeHtml(item.date)}</div>
-            <div class="media-size">${formatBytes(item.size)}</div>
-            ${item.text ? `<div class="media-text">${escapeHtml(item.text)}</div>` : ""}
-            <button class="download-one" data-download-one="${item.id}" title="Tải file này">Tải file</button>
+            <div class="media-date">${escapeHtml(formatDate(item.date))}</div>
+            <button class="download-one" data-download-one="${item.id}" title="Tải file này">Tải về</button>
           </div>
         </article>
       `;
@@ -197,6 +223,7 @@ function openViewer(item) {
   const viewer = $("viewer");
   $("viewerTitle").textContent = item.name;
   $("viewerMeta").textContent = `${item.kind.toUpperCase()} · ${formatBytes(item.size) || "unknown size"}`;
+  $("viewerDownload").dataset.downloadOne = String(item.id);
   $("viewerBody").innerHTML = '<div class="viewer-loading">Đang tải preview...</div>';
   viewer.classList.remove("hidden");
   viewer.setAttribute("aria-hidden", "false");
@@ -382,13 +409,10 @@ async function downloadSelected() {
   if (!canDownloadWithCurrentKey(messageIds.length)) {
     return;
   }
-  const job = await request("/api/download", {
-    method: "POST",
-    body: JSON.stringify({ chat_id: state.selectedChat, message_ids: messageIds, access_key: state.accessKey }),
+  const items = messageIds.map((id) => state.media.find((media) => media.id === id)).filter(Boolean);
+  items.forEach((item, index) => {
+    setTimeout(() => browserDownload(item), index * 250);
   });
-  $("jobBox").classList.remove("hidden");
-  markTestDownloadUsed();
-  pollJob(job.job_id);
 }
 
 async function downloadOne(messageId) {
@@ -396,18 +420,8 @@ async function downloadOne(messageId) {
     toast("Chọn nhóm/kênh trước.");
     return;
   }
-  if (!canDownloadWithCurrentKey(1)) {
-    return;
-  }
   const item = state.media.find((media) => media.id === messageId);
-  const job = await request("/api/download", {
-    method: "POST",
-    body: JSON.stringify({ chat_id: state.selectedChat, message_ids: [messageId], access_key: state.accessKey }),
-  });
-  $("jobBox").classList.remove("hidden");
-  markTestDownloadUsed();
-  toast(`Đang tải ${item ? compactName(item.name) : "file"}...`);
-  pollJob(job.job_id);
+  browserDownload(item);
 }
 
 async function pollJob(jobId) {

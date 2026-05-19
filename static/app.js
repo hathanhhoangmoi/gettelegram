@@ -10,9 +10,13 @@ const state = {
   isScanning: false,
   scanToken: 0,
   scannedMessages: 0,
+  accessKey: localStorage.getItem("telegramDownloaderAccessKey") || "",
+  keyMode: null,
+  testDownloadUsed: localStorage.getItem("telegramDownloaderTestDownloadUsed") === "1",
 };
 
 const $ = (id) => document.getElementById(id);
+const TEST_ACCESS_KEY = "Key Test";
 
 function toast(message) {
   const el = $("toast");
@@ -23,15 +27,82 @@ function toast(message) {
 }
 
 async function request(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(state.accessKey ? { "X-Access-Key": state.accessKey } : {}),
+    ...(options.headers || {}),
+  };
   const res = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers,
   });
   const data = await res.json();
   if (!res.ok || data.error) {
     throw new Error(data.error || "Request failed");
   }
   return data;
+}
+
+function isTestKey() {
+  return state.keyMode === "test" || state.accessKey.trim() === TEST_ACCESS_KEY;
+}
+
+function updateKeyStatus() {
+  $("accessKey").value = state.accessKey;
+  if (!state.accessKey) {
+    $("keyStatus").textContent = "Nhập key để tải danh sách nhóm/kênh và media.";
+    return;
+  }
+  if (isTestKey()) {
+    $("keyStatus").textContent = state.testDownloadUsed
+      ? "Key Test đã dùng 1 lượt tải. Hãy nhập key khác để tải tiếp."
+      : "Key Test: xem được nhóm/media, chỉ tải được 1 file.";
+    return;
+  }
+  $("keyStatus").textContent = state.keyMode === "full" ? "Key hợp lệ: không giới hạn tải." : "Key đã lưu. Bấm Tải danh sách để kiểm tra.";
+}
+
+function requireAccessKey() {
+  const typedKey = $("accessKey").value.trim();
+  if (typedKey && typedKey !== state.accessKey) {
+    state.accessKey = typedKey;
+    state.keyMode = null;
+    localStorage.setItem("telegramDownloaderAccessKey", typedKey);
+    updateKeyStatus();
+  }
+  if (state.accessKey.trim()) {
+    return true;
+  }
+  toast("Nhập access key trước.");
+  $("accessKey").focus();
+  return false;
+}
+
+function markTestDownloadUsed() {
+  if (!isTestKey()) {
+    return;
+  }
+  state.testDownloadUsed = true;
+  localStorage.setItem("telegramDownloaderTestDownloadUsed", "1");
+  updateKeyStatus();
+}
+
+function canDownloadWithCurrentKey(messageCount) {
+  if (!requireAccessKey()) {
+    return false;
+  }
+  if (!isTestKey()) {
+    return true;
+  }
+  if (state.testDownloadUsed) {
+    toast("Key Test đã tải 1 file. Hãy nhập key khác để tải tiếp.");
+    return false;
+  }
+  if (messageCount !== 1) {
+    toast("Key Test chỉ được tải đúng 1 file.");
+    return false;
+  }
+  return true;
 }
 
 function formatBytes(size) {
@@ -198,7 +269,13 @@ async function completeLogin() {
 }
 
 async function loadChats() {
+  if (!requireAccessKey()) {
+    return;
+  }
   const data = await request("/api/chats");
+  state.keyMode = data.key_mode || state.keyMode;
+  localStorage.setItem("telegramDownloaderAccessKey", state.accessKey);
+  updateKeyStatus();
   state.chats = data.chats;
   renderChats();
   toast(`Đã tải ${state.chats.length} nhóm/kênh.`);
@@ -275,6 +352,23 @@ async function scanAllMedia(token) {
   }
 }
 
+async function saveAccessKey() {
+  const key = $("accessKey").value.trim();
+  if (!key) {
+    toast("Nhập access key.");
+    return;
+  }
+  const data = await request("/api/key/check", {
+    method: "POST",
+    body: JSON.stringify({ access_key: key }),
+  });
+  state.accessKey = key;
+  state.keyMode = data.key_mode;
+  localStorage.setItem("telegramDownloaderAccessKey", key);
+  updateKeyStatus();
+  toast(data.key_mode === "test" ? "Đã lưu Key Test." : "Đã lưu key không giới hạn.");
+}
+
 async function downloadSelected() {
   if (!state.selectedChat) {
     toast("Chọn nhóm/kênh trước.");
@@ -285,11 +379,15 @@ async function downloadSelected() {
     toast("Tick ít nhất một ảnh hoặc video.");
     return;
   }
+  if (!canDownloadWithCurrentKey(messageIds.length)) {
+    return;
+  }
   const job = await request("/api/download", {
     method: "POST",
-    body: JSON.stringify({ chat_id: state.selectedChat, message_ids: messageIds }),
+    body: JSON.stringify({ chat_id: state.selectedChat, message_ids: messageIds, access_key: state.accessKey }),
   });
   $("jobBox").classList.remove("hidden");
+  markTestDownloadUsed();
   pollJob(job.job_id);
 }
 
@@ -298,12 +396,16 @@ async function downloadOne(messageId) {
     toast("Chọn nhóm/kênh trước.");
     return;
   }
+  if (!canDownloadWithCurrentKey(1)) {
+    return;
+  }
   const item = state.media.find((media) => media.id === messageId);
   const job = await request("/api/download", {
     method: "POST",
-    body: JSON.stringify({ chat_id: state.selectedChat, message_ids: [messageId] }),
+    body: JSON.stringify({ chat_id: state.selectedChat, message_ids: [messageId], access_key: state.accessKey }),
   });
   $("jobBox").classList.remove("hidden");
+  markTestDownloadUsed();
   toast(`Đang tải ${item ? compactName(item.name) : "file"}...`);
   pollJob(job.job_id);
 }
@@ -366,6 +468,7 @@ document.addEventListener("click", (event) => {
 $("refreshStatus").addEventListener("click", () => refreshStatus().catch((error) => toast(error.message)));
 $("startLogin").addEventListener("click", () => startLogin().catch((error) => toast(error.message)));
 $("completeLogin").addEventListener("click", () => completeLogin().catch((error) => toast(error.message)));
+$("saveAccessKey").addEventListener("click", () => saveAccessKey().catch((error) => toast(error.message)));
 $("loadChats").addEventListener("click", () => loadChats().catch((error) => toast(error.message)));
 $("downloadSelected").addEventListener("click", () => downloadSelected().catch((error) => toast(error.message)));
 $("chatSearch").addEventListener("input", renderChats);
@@ -381,4 +484,5 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+updateKeyStatus();
 refreshStatus().catch((error) => toast(error.message));

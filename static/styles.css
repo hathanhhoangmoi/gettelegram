@@ -571,10 +571,10 @@ video.viewer-media {
   }
 
   input[type="checkbox"] {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
   }
 
   .app {
@@ -618,8 +618,10 @@ video.viewer-media {
   }
 
   .workspace {
+    display: grid;
     gap: 10px;
     margin-top: 10px;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .grid,
@@ -655,40 +657,44 @@ video.viewer-media {
   }
 
   .list {
-    max-height: 280px;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(220px, 82vw);
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 4px;
-    scroll-snap-type: x proximity;
+    max-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 2px;
+    scroll-snap-type: none;
   }
 
   .chat-item {
-    min-height: 76px;
+    min-height: 58px;
     border-radius: 14px;
-    scroll-snap-align: start;
   }
 
   .media-panel {
-    min-height: 52vh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
+    max-height: 62vh;
+    overflow: hidden;
   }
 
   .media-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-    min-height: 180px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
   }
 
   .media-item {
     min-height: 0;
     border-radius: 14px;
-    padding: 8px;
+    padding: 6px;
+    gap: 6px;
   }
 
   .preview {
-    aspect-ratio: 1 / 1;
-    border-radius: 12px;
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
   }
 
   .preview .kind {
@@ -710,7 +716,7 @@ video.viewer-media {
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .media-date,
@@ -720,9 +726,9 @@ video.viewer-media {
   }
 
   .download-one {
-    min-height: 36px;
+    min-height: 32px;
     margin-top: 6px;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .media-text {
@@ -769,11 +775,5 @@ video.viewer-media {
   .viewer-media {
     max-height: calc(100vh - 92px);
     border-radius: 12px;
-  }
-}
-
-@media (max-width: 380px) {
-  .media-grid {
-    grid-template-columns: 1fr;
   }
 }

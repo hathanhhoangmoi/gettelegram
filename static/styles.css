@@ -587,6 +587,17 @@ video.viewer-media {
   width: min(100%, 980px);
 }
 
+.video-shell {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.video-toggle {
+  min-width: 120px;
+}
+
 .viewer-loading {
   color: var(--muted);
   font-weight: 700;

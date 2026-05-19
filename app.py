@@ -10,7 +10,7 @@ from base64 import b64decode
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
@@ -26,12 +26,11 @@ THUMB_DIR = DATA_DIR / ".thumbs"
 PREVIEW_DIR = DATA_DIR / ".previews"
 SESSION_PATH = DATA_DIR / "telegram_downloader"
 ACCESS_KEYS_PATH = Path(os.environ.get("ACCESS_KEYS_PATH", ROOT / "access_keys.txt")).resolve()
-ACCESS_COOKIE_NAME = "telegram_downloader_access"
+TEST_ACCESS_KEY = os.environ.get("TEST_ACCESS_KEY", "Key Test")
 HOST = os.environ.get("HOST", "0.0.0.0" if os.environ.get("RENDER") else "127.0.0.1")
 PORT = int(os.environ.get("PORT", "8787"))
 WEB_USERNAME = os.environ.get("WEB_USERNAME", "admin")
 WEB_PASSWORD = os.environ.get("WEB_PASSWORD", "")
-ACCESS_SESSIONS = set()
 
 
 def safe_name(value):
@@ -104,13 +103,14 @@ def load_access_keys():
     }
 
 
-def parse_cookies(header):
-    cookies = {}
-    for item in header.split(";"):
-        name, _, value = item.strip().partition("=")
-        if name:
-            cookies[name] = value
-    return cookies
+def access_key_mode(key):
+    key = (key or "").strip()
+    if secrets.compare_digest(key, TEST_ACCESS_KEY):
+        return "test"
+    valid_keys = load_access_keys()
+    if any(secrets.compare_digest(key, valid_key) for valid_key in valid_keys):
+        return "full"
+    return None
 
 
 class TelegramService:
@@ -408,47 +408,25 @@ class AppHandler(SimpleHTTPRequestHandler):
         self.wfile.write(b"Authentication required.")
         return False
 
-    def _has_access_key(self):
-        token = parse_cookies(self.headers.get("Cookie", "")).get(ACCESS_COOKIE_NAME, "")
-        return bool(token and token in ACCESS_SESSIONS)
+    def _access_key_from_request(self, payload=None):
+        parsed = urlparse(self.path)
+        query_key = parse_qs(parsed.query).get("access_key", [""])[0]
+        body_key = (payload or {}).get("access_key", "")
+        return body_key or self.headers.get("X-Access-Key", "") or query_key
 
-    def _require_access_key(self):
-        if self._has_access_key():
-            return True
-        if self.path.startswith("/api/"):
-            return json_response(self, {"error": "Access key required."}, HTTPStatus.UNAUTHORIZED)
-        self.send_error(HTTPStatus.FORBIDDEN, "Access key required.")
-        return False
+    def _require_access_key(self, payload=None):
+        key = self._access_key_from_request(payload)
+        mode = access_key_mode(key)
+        if mode:
+            return key, mode
+        json_response(self, {"error": "Nhập access key hợp lệ để dùng chức năng này."}, HTTPStatus.UNAUTHORIZED)
+        return None, None
 
-    def _serve_access_page(self):
-        path = STATIC_DIR / "access.html"
-        data = path.read_bytes()
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(data)
-
-    def _complete_access(self, key):
-        valid_keys = load_access_keys()
-        if not valid_keys:
-            raise RuntimeError("No access keys configured.")
-        if not any(secrets.compare_digest(key, valid_key) for valid_key in valid_keys):
-            raise RuntimeError("Key không hợp lệ.")
-
-        token = secrets.token_urlsafe(32)
-        ACCESS_SESSIONS.add(token)
-        data = json.dumps({"ok": True}, ensure_ascii=False).encode("utf-8")
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header(
-            "Set-Cookie",
-            f"{ACCESS_COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800",
-        )
-        self.end_headers()
-        self.wfile.write(data)
+    def _attach_access_key(self, media_items, key):
+        encoded_key = quote(key, safe="")
+        for item in media_items:
+            item["thumbnail_url"] = f'{item["thumbnail_url"]}&access_key={encoded_key}'
+            item["preview_url"] = f'{item["preview_url"]}&access_key={encoded_key}'
 
     def translate_path(self, path):
         parsed = urlparse(path)
@@ -465,30 +443,42 @@ class AppHandler(SimpleHTTPRequestHandler):
             return
         parsed = urlparse(self.path)
         path = parsed.path
-        if path in ("/", "/access.html") and not self._has_access_key():
-            return self._serve_access_page()
-        if path not in ("/styles.css",) and not self._require_access_key():
-            return
         try:
             if path == "/api/status":
                 return json_response(self, telegram.status())
             if path == "/api/chats":
-                return json_response(self, {"chats": telegram.list_chats()})
+                _, mode = self._require_access_key()
+                if not mode:
+                    return
+                return json_response(self, {"chats": telegram.list_chats(), "key_mode": mode})
             if path == "/api/media":
+                key, mode = self._require_access_key()
+                if not mode:
+                    return
                 qs = parse_qs(parsed.query)
                 chat_id = qs.get("chat_id", [""])[0]
                 limit = int(qs.get("limit", ["50"])[0])
                 offset_id = int(qs.get("offset_id", ["0"])[0])
                 result = telegram.list_media(chat_id, limit, offset_id)
+                self._attach_access_key(result["items"], key)
                 return json_response(self, {"media": result["items"], **result})
             if path == "/api/job":
+                _, mode = self._require_access_key()
+                if not mode:
+                    return
                 qs = parse_qs(parsed.query)
                 return json_response(self, telegram.job_status(qs.get("id", [""])[0]))
             if path == "/api/thumbnail":
+                _, mode = self._require_access_key()
+                if not mode:
+                    return
                 qs = parse_qs(parsed.query)
                 thumb_path = telegram.thumbnail_path(qs.get("chat_id", [""])[0], qs.get("message_id", [""])[0])
                 return file_response(self, thumb_path)
             if path == "/api/preview":
+                _, mode = self._require_access_key()
+                if not mode:
+                    return
                 qs = parse_qs(parsed.query)
                 preview_path = telegram.preview_path(qs.get("chat_id", [""])[0], qs.get("message_id", [""])[0])
                 return file_response(self, preview_path)
@@ -499,9 +489,6 @@ class AppHandler(SimpleHTTPRequestHandler):
     def do_HEAD(self):
         if not self._require_basic_auth():
             return
-        parsed = urlparse(self.path)
-        if parsed.path not in ("/styles.css",) and not self._require_access_key():
-            return
         return super().do_HEAD()
 
     def do_POST(self):
@@ -510,10 +497,6 @@ class AppHandler(SimpleHTTPRequestHandler):
         parsed = urlparse(self.path)
         try:
             payload = read_json(self)
-            if parsed.path == "/api/access":
-                return self._complete_access(payload.get("key", "").strip())
-            if not self._require_access_key():
-                return
             if parsed.path == "/api/login/start":
                 return json_response(
                     self,
@@ -524,10 +507,20 @@ class AppHandler(SimpleHTTPRequestHandler):
                     self,
                     telegram.complete_code(payload.get("code", ""), payload.get("password") or None),
                 )
+            if parsed.path == "/api/key/check":
+                _, mode = self._require_access_key(payload)
+                if not mode:
+                    return
+                return json_response(self, {"valid": True, "key_mode": mode})
             if parsed.path == "/api/download":
+                _, mode = self._require_access_key(payload)
+                if not mode:
+                    return
                 message_ids = [int(item) for item in payload.get("message_ids", [])]
                 if not message_ids:
                     raise RuntimeError("Select at least one photo or video.")
+                if mode == "test" and len(message_ids) > 1:
+                    raise RuntimeError("Key Test chỉ được tải 1 file. Hãy dùng key khác để tải nhiều file.")
                 return json_response(self, telegram.download_selected(payload["chat_id"], message_ids))
             return json_response(self, {"error": "Not found"}, HTTPStatus.NOT_FOUND)
         except Exception as exc:

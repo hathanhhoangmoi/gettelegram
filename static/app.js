@@ -499,6 +499,12 @@ document.addEventListener("click", (event) => {
 $("refreshStatus").addEventListener("click", () => refreshStatus().catch((error) => toast(error.message)));
 $("startLogin").addEventListener("click", () => startLogin().catch((error) => toast(error.message)));
 $("completeLogin").addEventListener("click", () => completeLogin().catch((error) => toast(error.message)));
+$("accessKey").addEventListener("input", () => {
+  const raw = $("accessKey").value;
+  if (raw !== TEST_ACCESS_KEY) {
+    $("accessKey").value = raw.toUpperCase();
+  }
+});
 $("saveAccessKey").addEventListener("click", () => saveAccessKey().catch((error) => toast(error.message)));
 $("loadChats").addEventListener("click", () => loadChats().catch((error) => toast(error.message)));
 $("downloadSelected").addEventListener("click", () => downloadSelected().catch((error) => toast(error.message)));

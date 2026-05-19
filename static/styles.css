@@ -92,54 +92,7 @@ label {
   padding: 24px 0;
 }
 
-.access-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-}
-
-.access-card {
-  width: min(420px, 100%);
-}
-
-.access-card h1 {
-  font-size: 24px;
-}
-
-.access-form {
-  display: grid;
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.access-message {
-  min-height: 22px;
-  margin-top: 12px;
-  color: var(--danger);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.topbar {
-  position: sticky;
-  top: 12px;
-  z-index: 15;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  border: 1px solid rgba(135, 154, 174, 0.28);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 14px 42px rgba(31, 62, 89, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(24px) saturate(1.25);
-  -webkit-backdrop-filter: blur(24px) saturate(1.25);
-}
-
-.header-actions {
+.media-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -579,16 +532,11 @@ video.viewer-media {
     padding: 12px 0;
   }
 
-  .topbar,
   .section-head {
     align-items: flex-start;
   }
 
-  .topbar {
-    flex-direction: column;
-  }
-
-  .header-actions {
+  .media-actions {
     justify-content: flex-start;
   }
 
@@ -631,20 +579,7 @@ video.viewer-media {
 
   .app {
     width: 100%;
-    padding: 0 0 84px;
-  }
-
-  .topbar {
-    top: 0;
-    margin-bottom: 10px;
-    padding: 12px;
-    border-width: 0 0 1px;
-    border-radius: 0;
-    background: rgba(255, 255, 255, 0.9);
-  }
-
-  .topbar p {
-    display: none;
+    padding: 10px 0 18px;
   }
 
   h1 {
@@ -656,24 +591,14 @@ video.viewer-media {
     font-size: 17px;
   }
 
-  .header-actions {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 18;
+  .media-actions {
     display: grid;
     grid-template-columns: 1fr 48px;
     gap: 8px;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--line);
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 -16px 42px rgba(31, 62, 89, 0.14);
-    backdrop-filter: blur(20px) saturate(1.2);
-    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    width: 100%;
   }
 
-  .header-actions button {
+  .media-actions button {
     width: 100%;
     min-width: 0;
     padding: 0 10px;

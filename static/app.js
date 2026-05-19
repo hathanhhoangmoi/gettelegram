@@ -205,8 +205,7 @@ function renderMedia() {
           const checked = state.selectedIds.has(item.id);
           return `
         <article class="media-item ${checked ? "selected" : ""}" data-message-id="${item.id}">
-          <button class="preview" data-open-preview="${item.id}" title="Xem ${escapeHtml(item.kind)}">
-            <img src="${escapeHtml(item.thumbnail_url)}" alt="${escapeHtml(item.name)}" loading="lazy" width="320" height="320" />
+          <button class="preview" data-open-preview="${item.id}" title="Xem ${escapeHtml(item.kind)}" style="--preview-image: url('${escapeHtml(item.thumbnail_url)}')">
             <span class="kind">${item.kind}</span>
             ${item.kind === "video" ? '<span class="play">▶</span>' : ""}
           </button>
@@ -291,7 +290,7 @@ async function openViewer(item) {
     });
   } else {
     $("viewerBody").innerHTML = `
-      <img class="viewer-media" src="${escapeHtml(src)}" alt="${escapeHtml(item.name)}" />
+      <div class="viewer-media viewer-image" role="img" aria-label="${escapeHtml(item.name)}" style="--viewer-image: url('${escapeHtml(src)}')"></div>
     `;
   }
 }

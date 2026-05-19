@@ -8,17 +8,6 @@
   </head>
   <body>
     <main class="app">
-      <header class="topbar">
-        <div>
-          <h1>Telegram Media Downloader</h1>
-          <p>Tải ảnh và video đã chọn từ nhóm/kênh mà tài khoản của bạn có quyền xem.</p>
-        </div>
-        <div class="header-actions">
-          <button id="downloadSelected">Download selected</button>
-          <button id="refreshStatus" class="icon-button" title="Refresh status">↻</button>
-        </div>
-      </header>
-
       <section class="panel" id="loginPanel">
         <h2>Đăng nhập Telegram</h2>
         <details class="api-guide" open>
@@ -88,6 +77,10 @@
             <div>
               <h2 id="mediaTitle">Media</h2>
               <p id="selectedCount">Chưa chọn media.</p>
+            </div>
+            <div class="media-actions">
+              <button id="downloadSelected">Download selected</button>
+              <button id="refreshStatus" class="icon-button" title="Refresh status">↻</button>
             </div>
           </div>
           <div id="mediaList" class="media-grid"></div>

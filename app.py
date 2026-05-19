@@ -47,7 +47,7 @@ def json_response(handler, payload, status=HTTPStatus.OK):
     handler.wfile.write(data)
 
 
-def file_response(handler, path):
+def file_response(handler, path, attachment_name=None):
     path = Path(path)
     if not path.exists() or not path.is_file():
         handler.send_error(HTTPStatus.NOT_FOUND)
@@ -71,6 +71,9 @@ def file_response(handler, path):
     handler.send_header("Content-Type", content_type)
     handler.send_header("Content-Length", str(length))
     handler.send_header("Accept-Ranges", "bytes")
+    if attachment_name:
+        safe_attachment = str(attachment_name).replace('"', "")
+        handler.send_header("Content-Disposition", f'attachment; filename="{safe_attachment}"')
     if status == HTTPStatus.PARTIAL_CONTENT:
         handler.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
     handler.send_header("Cache-Control", "private, max-age=86400")
@@ -228,16 +231,18 @@ class TelegramService:
                 file_name = getattr(message.file, "name", None) if message.file else None
                 ext = getattr(message.file, "ext", None) if message.file else None
                 size = getattr(message.file, "size", None) if message.file else None
+                name = file_name or f"{kind}_{message.id}{ext or ''}"
                 items.append(
                     {
                         "id": message.id,
                         "date": message.date.isoformat() if message.date else "",
                         "kind": kind,
-                        "name": file_name or f"{kind}_{message.id}{ext or ''}",
+                        "name": name,
                         "size": size,
                         "text": (message.message or "").strip()[:180],
                         "thumbnail_url": f"/api/thumbnail?chat_id={chat_id}&message_id={message.id}",
                         "preview_url": f"/api/preview?chat_id={chat_id}&message_id={message.id}",
+                        "download_url": f"/api/browser-download?chat_id={chat_id}&message_id={message.id}&name={quote(name, safe='')}",
                     }
                 )
             if len(items) >= target_media_count or scanned >= max_messages_to_scan:
@@ -346,6 +351,9 @@ class TelegramService:
     def preview_path(self, chat_id, message_id):
         return self.run(self._preview_path(chat_id, message_id))
 
+    def browser_download_path(self, chat_id, message_id):
+        return self.run(self._browser_download_path(chat_id, message_id))
+
     async def _preview_path(self, chat_id, message_id):
         self.ensure_connected()
         entity = self.chats.get(str(chat_id))
@@ -379,6 +387,9 @@ class TelegramService:
         if not result:
             raise RuntimeError("Could not download media preview.")
         return Path(result)
+
+    async def _browser_download_path(self, chat_id, message_id):
+        return await self._preview_path(chat_id, message_id)
 
 
 telegram = TelegramService()
@@ -427,6 +438,7 @@ class AppHandler(SimpleHTTPRequestHandler):
         for item in media_items:
             item["thumbnail_url"] = f'{item["thumbnail_url"]}&access_key={encoded_key}'
             item["preview_url"] = f'{item["preview_url"]}&access_key={encoded_key}'
+            item["download_url"] = f'{item["download_url"]}&access_key={encoded_key}'
 
     def translate_path(self, path):
         parsed = urlparse(path)
@@ -482,6 +494,14 @@ class AppHandler(SimpleHTTPRequestHandler):
                 qs = parse_qs(parsed.query)
                 preview_path = telegram.preview_path(qs.get("chat_id", [""])[0], qs.get("message_id", [""])[0])
                 return file_response(self, preview_path)
+            if path == "/api/browser-download":
+                _, mode = self._require_access_key()
+                if not mode:
+                    return
+                qs = parse_qs(parsed.query)
+                download_path = telegram.browser_download_path(qs.get("chat_id", [""])[0], qs.get("message_id", [""])[0])
+                attachment_name = safe_name(qs.get("name", [Path(download_path).name])[0])
+                return file_response(self, download_path, attachment_name)
             return super().do_GET()
         except Exception as exc:
             return json_response(self, {"error": str(exc)}, HTTPStatus.BAD_REQUEST)

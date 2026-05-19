@@ -273,6 +273,7 @@ code {
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 10px;
   min-height: 220px;
+  align-items: start;
 }
 
 .batch-divider {
@@ -288,8 +289,8 @@ code {
 }
 
 .media-item {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -323,6 +324,8 @@ code {
 }
 
 .preview img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -601,7 +604,7 @@ video.viewer-media {
 
   .app {
     width: 100%;
-    padding: 10px 0 18px;
+    padding: calc(18px + env(safe-area-inset-top)) 0 18px;
   }
 
   h1 {
@@ -695,16 +698,20 @@ video.viewer-media {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     min-height: 0;
-    max-height: 62vh;
+    max-height: 64vh;
     overflow: hidden;
   }
 
   .media-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+    align-content: start;
+    align-items: start;
+    grid-auto-flow: row;
     min-height: 0;
     overflow-y: auto;
     padding-right: 2px;
+    overscroll-behavior: contain;
   }
 
   .media-item {
@@ -712,11 +719,13 @@ video.viewer-media {
     border-radius: 14px;
     padding: 6px;
     gap: 6px;
+    overflow: hidden;
   }
 
   .preview {
     aspect-ratio: 1 / 1;
     border-radius: 10px;
+    flex: 0 0 auto;
   }
 
   .preview .kind {
@@ -731,6 +740,7 @@ video.viewer-media {
 
   .media-row {
     align-items: flex-start;
+    min-height: 32px;
   }
 
   .media-name {

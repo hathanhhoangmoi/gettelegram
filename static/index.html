@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Telegram Media Downloader</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>Telegram Media Downloader</h1>
+          <p>Tải ảnh và video đã chọn từ nhóm/kênh mà tài khoản của bạn có quyền xem.</p>
+        </div>
+        <div class="header-actions">
+          <button id="loadMore">Tải thêm</button>
+          <button id="downloadSelected">Download selected</button>
+          <button id="refreshStatus" class="icon-button" title="Refresh status">↻</button>
+        </div>
+      </header>
+
+      <section class="panel" id="loginPanel">
+        <h2>Đăng nhập Telegram</h2>
+        <div class="grid">
+          <label>
+            API ID
+            <input id="apiId" inputmode="numeric" autocomplete="off" />
+          </label>
+          <label>
+            API Hash
+            <input id="apiHash" autocomplete="off" />
+          </label>
+          <label>
+            Số điện thoại
+            <input id="phone" placeholder="+849..." autocomplete="tel" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="startLogin">Gửi mã đăng nhập</button>
+        </div>
+        <div id="codeArea" class="code-area hidden">
+          <label>
+            Mã xác thực
+            <input id="loginCode" autocomplete="one-time-code" />
+          </label>
+          <label>
+            Mật khẩu 2FA nếu có
+            <input id="password" type="password" autocomplete="current-password" />
+          </label>
+          <button id="completeLogin">Hoàn tất đăng nhập</button>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="panel chats">
+          <div class="section-head">
+            <h2>Nhóm/Kênh</h2>
+            <button id="loadChats">Tải danh sách</button>
+          </div>
+          <input id="chatSearch" class="search" placeholder="Tìm nhóm..." />
+          <div id="chatList" class="list"></div>
+        </aside>
+
+        <section class="panel media-panel">
+          <div class="section-head">
+            <div>
+              <h2 id="mediaTitle">Media</h2>
+              <p id="selectedCount">Chưa chọn media.</p>
+            </div>
+          </div>
+          <div id="mediaList" class="media-grid"></div>
+          <div id="jobBox" class="job hidden"></div>
+        </section>
+      </section>
+
+      <div id="toast" class="toast hidden"></div>
+    </main>
+    <div id="viewer" class="viewer hidden" aria-hidden="true">
+      <div class="viewer-panel">
+        <div class="viewer-head">
+          <div>
+            <strong id="viewerTitle">Media</strong>
+            <span id="viewerMeta"></span>
+          </div>
+          <button id="closeViewer" class="icon-button" title="Close preview">×</button>
+        </div>
+        <div id="viewerBody" class="viewer-body"></div>
+      </div>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Access Key - Telegram Media Downloader</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="access-shell">
+      <section class="panel access-card">
+        <h1>Nhập access key</h1>
+        <p>Key hợp lệ mới mở được trình tải Telegram.</p>
+        <form id="accessForm" class="access-form">
+          <label>
+            Access key
+            <input
+              id="accessKey"
+              autocomplete="one-time-code"
+              inputmode="numeric"
+              placeholder="GET-TELE-0000-00"
+              required
+            />
+          </label>
+          <button type="submit">Mở trang</button>
+        </form>
+        <div id="accessMessage" class="access-message" role="status"></div>
+      </section>
+    </main>
+    <script>
+      const form = document.getElementById("accessForm");
+      const input = document.getElementById("accessKey");
+      const message = document.getElementById("accessMessage");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        message.textContent = "Đang kiểm tra key...";
+        try {
+          const response = await fetch("/api/access", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: input.value.trim() }),
+          });
+          const data = await response.json();
+          if (!response.ok || data.error) {
+            throw new Error(data.error || "Key không hợp lệ.");
+          }
+          window.location.replace("/");
+        } catch (error) {
+          message.textContent = error.message;
+        }
+      });
+    </script>
+  </body>
+</html>

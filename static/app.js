@@ -16,7 +16,7 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
-const TEST_ACCESS_KEY = "Key Test";
+const TEST_ACCESS_KEY = "KEYTEST";
 const TELEGRAM_CREDENTIALS_KEY = "telegramDownloaderCredentials";
 
 function toast(message) {
